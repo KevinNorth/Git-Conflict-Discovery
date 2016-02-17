@@ -3,6 +3,6 @@
 working_dir = ARGV[0]
 Dir.chdir working_dir
 
-graph = `git log --format="%H" --graph --no-color --author-date-order --reverse`.split("\n")
+graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n")
 
-puts graph
+puts graph.reverse
