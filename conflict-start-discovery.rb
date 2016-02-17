@@ -48,13 +48,36 @@ class Branches
   end
 end
 
+def get_commit_parents(commit_hash)
+  return `git show #{commit_hash} --format="%P" --no-patch`.strip.split(' ')
+end
+
 working_dir = ARGV[0]
 
 if working_dir != nil
   Dir.chdir working_dir
 end
 
-graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n")
+graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n").reverse
 
-puts graph.reverse
+branches = Branches.new
+updated_graph = []
+commit_regex = /([0-9a-fA-F]+)$/
+for row in graph
+  commit_match = commit_regex.match row
+  if commit_match
+    commit_hash = commit_match.captures[0]
+    commit_parents = get_commit_parents(commit_hash)
+    branches.advance(commit_hash, commit_parents)
 
+    other_commits = branches.get_current_heads_except(commit_hash)
+    new_row = "#{row} | #{other_commits.join(' ')}"
+    updated_graph.push(new_row)
+  else
+    updated_graph.push row
+  end
+end
+
+for row in updated_graph.reverse
+  puts row
+end
