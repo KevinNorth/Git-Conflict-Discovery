@@ -42,7 +42,9 @@ class Branches
   end
 
   def get_current_heads_except(commit)
-    return self.get_current_heads().delete(commit)
+    current_heads = get_current_heads()
+    current_heads.delete(commit)
+    return current_heads
   end
 end
 
