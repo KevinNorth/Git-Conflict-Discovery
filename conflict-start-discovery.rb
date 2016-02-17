@@ -52,13 +52,36 @@ def get_commit_parents(commit_hash)
   return `git show #{commit_hash} --format="%P" --no-patch`.strip.split(' ')
 end
 
+def do_commits_conflict?(commit1, commit2)
+  result = false
+
+  `git checkout #{commit1}`
+  merge_output = `git merge #{commit2}`
+
+  if /CONFLICT/ =~ merge_output
+    result = true
+    `git merge --abort`
+  end
+
+  `git clean -xdf`
+  `git reset --hard`
+  `git checkout .`
+
+  return result
+end
+
 working_dir = ARGV[0]
 
 if working_dir != nil
   Dir.chdir working_dir
 end
 
-graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n").reverse
+graph = nil
+if ARGV[1]
+  graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n").reverse
+else
+  graph = `git log --format="%H" --graph --no-color --author-date-order --since=#{ARGV[1]}`.split("\n").reverse
+end
 
 branches = Branches.new
 updated_graph = []
@@ -71,7 +94,13 @@ for row in graph
     branches.advance(commit_hash, commit_parents)
 
     other_commits = branches.get_current_heads_except(commit_hash)
-    new_row = "#{row} | #{other_commits.join(' ')}"
+    conflicting_commits = []
+    for other_commit in other_commits
+      if do_commits_conflict?(commit_hash, other_commit)
+        conflicting_commits.push other_commit
+      end
+    end
+    new_row = "#{row} | #{conflicting_commits.join(' ')}"
     updated_graph.push(new_row)
   else
     updated_graph.push row
