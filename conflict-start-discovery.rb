@@ -1,4 +1,10 @@
 #!/usr/bin/env ruby
+#SBATCH --job-name=voldemort_conflict_start_limited
+#SBATCH --time=048:00:00
+#SBATCH --output=/work/cse990/knorth/outputs/voldemort_conflict_start_limited.STDOUT
+#SBATCH --error=/work/cse990/knorth/outputs/voldemort_conflict_start_limited.STDERR
+#SBATCH --mem-per-cpu=8192
+#SBATCH --ntasks=1
 
 class Branch
   attr_reader :current_head
@@ -20,7 +26,7 @@ class Branches
   def advance(commit, parents)
     matching_branches = []
     for branch in @branches
-      if parents.include? (branch.current_head)
+      if parents.include?(branch.current_head)
         matching_branches.push branch
       end
     end
@@ -31,7 +37,7 @@ class Branches
       matching_branches[0].update_head(commit)
     else
       for matching_branch in matching_branches
-        @branches.delete_if {|b| b.current_head.eql? (matching_branch.current_head)}
+        @branches.delete_if {|b| b.current_head.eql?(matching_branch.current_head)}
       end
       @branches.push Branch.new(commit)
     end
@@ -49,7 +55,9 @@ class Branches
 end
 
 def get_commit_parents(commit_hash)
-  return `git show #{commit_hash} --format="%P" --no-patch`.strip.split(' ')
+  out = `git show #{commit_hash} --format="%P"`.strip
+  parents =  out.split('\n')[0].strip.split(' ')
+  return parents
 end
 
 def do_commits_conflict?(commit1, commit2)
@@ -70,18 +78,9 @@ def do_commits_conflict?(commit1, commit2)
   return result
 end
 
-working_dir = ARGV[0]
+Dir.chdir "voldemort"
 
-if working_dir != nil
-  Dir.chdir working_dir
-end
-
-graph = nil
-if ARGV[1]
-  graph = `git log --format="%H" --graph --no-color --author-date-order`.split("\n").reverse
-else
-  graph = `git log --format="%H" --graph --no-color --author-date-order --since=#{ARGV[1]}`.split("\n").reverse
-end
+graph = `git log --format="%H" --graph --no-color --since=2015-07-01`.split("\n").reverse
 
 branches = Branches.new
 updated_graph = []
