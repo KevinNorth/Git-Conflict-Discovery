@@ -6,7 +6,7 @@
 #SBATCH --mem-per-cpu=8192
 #SBATCH --ntasks=1
 
-class conflict
+class Conflict
   attr_accessor :start
   attr_accessor :end
 
@@ -35,7 +35,7 @@ for row in graph.reverse()
   commit_match = commit_regex.match row
   if commit_match
     commit_hash = commit_match.captures[0]
-    commit_conflicts = commit_match.captures[1].split(' ')
+    commit_conflicts = commit_match.captures[1].split(' ').map {|c| c.strip}
     commit_parents = get_commit_parents(commit_hash)
     commits_in_topological_order.push commit_hash
     all_commit_conflicts[commit_hash] = commit_conflicts
@@ -46,8 +46,9 @@ end
 conflicts = []
 
 for commit_hash in commits_in_topological_order
+  commit_hash
   commit_parents = all_parents[commit_hash]
-  commit_conflicts = all_commit_conflicts[commit_hash]
+  commit_conflicts = all_commit_conflicts[commit_hash] or []
 
   parent_conflicts = []
   for parent in commit_conflicts
@@ -60,6 +61,8 @@ for commit_hash in commits_in_topological_order
   potential_conflict_ends = Array.new(parent_conflicts)
   potential_conflict_ends.delete_if {|c| commit_conflicts.include? c}
 
+  # In many cases, when a commit has a conflict listed that isn't in its parents,
+  # that conflict 
   conflict_starts_to_remove = []
   conflict_ends_to_remove = []
   for potential_conflict_start in potential_conflict_starts
@@ -88,13 +91,30 @@ for commit_hash in commits_in_topological_order
     end
   end
 
-  for conflict_end in potential_conflict_ends
-    conflicts.find {|c| (c.start.eql? conflict_end) and (c.end == nil)}.end = commit_hash
+  # for conflict_end in potential_conflict_ends
+  #   conflicts.find {|c| (c.start.eql? conflict_end) and (c.end == nil)}.end = commit_hash
+  # end
+  # for conflict_start in potential_conflict_starts
+  #   new_conflict = Conflict.new
+  #   new_conflict.start = commit_hash
+  #   new_conflict.end = nil
+  #   conflicts.push new_conflict
+  # end
+
+  for conflict in conflicts
+    if commit_conflicts.include? conflict.end
+      conflict.end = commit_hash
+    end
   end
-  for conflict_start in potential_conflict_starts
+
+  for new_conflict_start in potential_conflict_starts
     new_conflict = Conflict.new
-    new_conflict.start = commit_hash
-    new_conflict.end = nil
+    new_conflict.start = new_conflict_start
+    new_conflict.end = commit_hash
     conflicts.push new_conflict
   end
+end
+
+for conflict in conflicts
+  puts conflict.start + ' ' + conflict.end
 end
