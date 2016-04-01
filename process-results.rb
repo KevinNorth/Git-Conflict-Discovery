@@ -9,14 +9,15 @@
 class Conflict
   attr_accessor :start
   attr_accessor :end
+  attr_accessor :conflicting_commit
 
   def initialize
   end
 end
 
 def get_commit_parents(commit_hash)
-  out = `git show #{commit_hash} --format="%P"`.strip
-  parents =  out.split('\n')[0].strip.split(' ')
+  out = `git show #{commit_hash} --format="%P" --no-patch`.strip
+  parents =  out.strip.split(' ')
   return parents
 end
 
@@ -55,66 +56,54 @@ for commit_hash in commits_in_topological_order
     parent_conflicts = parent_conflicts | all_commit_conflicts[parent]
   end
 
-  potential_conflict_starts = Array.new(commit_conflicts) #deep copy of array
-  potential_conflict_starts.delete_if {|c| parent_conflicts.include? c}
+  new_conflicts = Array.new(commit_conflicts) # deep copy array
+  resolved_conflicts = Array.new(parent_conflicts)
+  # continued_conflicts = Array.new(parent_conflicts)
 
-  potential_conflict_ends = Array.new(parent_conflicts)
-  potential_conflict_ends.delete_if {|c| commit_conflicts.include? c}
-
-  # In many cases, when a commit has a conflict listed that isn't in its parents,
-  # that conflict 
-  conflict_starts_to_remove = []
-  conflict_ends_to_remove = []
-  for potential_conflict_start in potential_conflict_starts
-    start_parents = all_parents[potential_conflict_start]
-    is_conflict_continued = false
-    potential_end_to_remove = nil
-    for parent in start_parents
-      if potential_conflict_ends.include? parent
-        is_conflict_continued = true
-        potential_end_to_remove = parent
-        break
-      end
-    end
-
-    if not is_conflict_continued
-      next
-    end
-
-    # Make sure that the conflict end we're removing wasn't actually merged into
-    # the commit we're checking. This would mean that we actually resolved one
-    # conflict at the same time as starting another conflict on a parallel
-    # branch
-    if not commit_parents.include? potential_end_to_remove
-      potential_conflict_ends.delete potential_end_to_remove
-      potential_conflict_starts.delete potential_conflict_start
+  for parent_conflict in parent_conflicts
+    if commit_conflicts.include? parent_conflict
+      resolved_conflicts.delete parent_conflict
+    # else
+      # continued_conflicts.delete parent_conflict
     end
   end
 
-  # for conflict_end in potential_conflict_ends
-  #   conflicts.find {|c| (c.start.eql? conflict_end) and (c.end == nil)}.end = commit_hash
-  # end
-  # for conflict_start in potential_conflict_starts
-  #   new_conflict = Conflict.new
-  #   new_conflict.start = commit_hash
-  #   new_conflict.end = nil
-  #   conflicts.push new_conflict
-  # end
+  for commit_conflict in commit_conflicts
+    if parent_conflicts.include? commit_conflict
+      new_conflicts.delete commit_conflict
+    end
+  end
 
-  for conflict in conflicts
-    if commit_conflicts.include? conflict.end
+  for resolved_conflict in resolved_conflicts
+    selected_conflicts = conflicts.select {|c| c.conflicting_commit == resolved_conflict}
+    for conflict in selected_conflicts
       conflict.end = commit_hash
     end
   end
 
-  for new_conflict_start in potential_conflict_starts
-    new_conflict = Conflict.new
-    new_conflict.start = new_conflict_start
-    new_conflict.end = commit_hash
-    conflicts.push new_conflict
+  for new_conflict in new_conflicts
+    conflict = Conflict.new
+    conflict.start = commit_hash
+    conflict.conflicting_commit = new_conflict
+    conflicts.push conflict 
   end
 end
 
 for conflict in conflicts
-  puts conflict.start + ' ' + conflict.end
+  start_commit = conflict.start
+  if start_commit == nil
+    start_commit = "nil"
+  end
+  
+  end_commit = conflict.end or "null"
+  if end_commit == nil
+    end_commit = "nil"
+  end
+
+  conflicting_commit = conflict.conflicting_commit
+  if conflicting_commit == nil
+    conflicting_commit = "nil"
+  end
+
+  puts start_commit + ' ' + end_commit + ' | ' + conflicting_commit
 end
