@@ -52,7 +52,7 @@ for commit_hash in commits_in_topological_order
   commit_conflicts = all_commit_conflicts[commit_hash] or []
 
   parent_conflicts = []
-  for parent in commit_conflicts
+  for parent in commit_parents
     parent_conflicts = parent_conflicts | all_commit_conflicts[parent]
   end
 
