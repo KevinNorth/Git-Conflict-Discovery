@@ -100,10 +100,5 @@ for conflict in conflicts
     end_commit = "nil"
   end
 
-  conflicting_commit = conflict.conflicting_commit
-  if conflicting_commit == nil
-    conflicting_commit = "nil"
-  end
-
-  puts start_commit + ' ' + end_commit + ' | ' + conflicting_commit
+  puts start_commit + ' ' + end_commit
 end
