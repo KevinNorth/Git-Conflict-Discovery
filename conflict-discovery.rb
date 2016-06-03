@@ -149,10 +149,6 @@ for row in graph
   end
 end
 
-for row in updated_graph.reverse()
-    puts row
-end
-
 commits_in_topological_order = []
 all_commit_conflicts = {}
 all_parents = {}
