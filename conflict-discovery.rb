@@ -75,6 +75,15 @@ class Branches
   end
 end
 
+class Conflict
+  attr_accessor :start
+  attr_accessor :end
+  attr_accessor :conflicting_commit
+
+  def initialize
+  end
+end
+
 # Gets a list of SHA1 hashes for the commits that are the
 # parents of the specified commit.
 #
@@ -82,10 +91,11 @@ end
 # commit: The SHA1 hash of the commit for which you want to
 #         find parents
 def get_commit_parents(commit_hash)
-  out = `git show #{commit_hash} --format="%P"`.strip
-  parents =  out.split('\n')[0].strip.split(' ')
+  out = `git show #{commit_hash} --format="%P" --no-patch`.strip
+  parents =  out.strip.split(' ')
   return parents
 end
+
 
 # Determines whether or not two commits conflict with
 # each other by attempting to merge them.
@@ -137,6 +147,10 @@ for row in graph
   else
     updated_graph.push row
   end
+end
+
+for row in updated_graph.reverse()
+    puts row
 end
 
 commits_in_topological_order = []
