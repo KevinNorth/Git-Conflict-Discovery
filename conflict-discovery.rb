@@ -1,5 +1,17 @@
 #!/usr/bin/env ruby
 
+# Usage:
+# ./conflict-discovery.rb [path to Git repository] > output.txt
+# Where [path to Git repository] is the filepath to the Git repository
+# that you want to find conflicts for and output.txt (or any other
+# name you desire) is the text file to write conflicts to.
+
+# When you run this script, it will output a lot of text to STDERR.
+# This text is the output of the Git commands that the script runs
+# and can be safely ignored. If something goes wrong, you can use the
+# output to see what it was and whether you can potentially fix it with
+# some Git kung-fu (although hopefully it won't come to that!)
+
 # Represents a branch that is being walked in a Git repository
 # Used to keep track of parallel branches in order to attempt
 # merges across different branches. Also keeps track of the most
@@ -123,6 +135,8 @@ end
 
 Dir.chdir ARGV[0]
 
+___first_commit = `git rev-parse HEAD`
+
 graph = `git log --format="%H" --graph --no-color --date-order`.split("\n").reverse
 
 branches = Branches.new
@@ -224,3 +238,5 @@ for conflict in conflicts
 
   puts start_commit + ' ' + end_commit
 end
+
+`git checkout #{___first_commit}`
